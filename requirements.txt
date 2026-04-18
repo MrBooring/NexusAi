@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+openai-whisper
+coqui-tts
+ollama
+chromadb
+websockets
+pydantic
+pydantic-settings
+python-multipart
