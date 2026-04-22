@@ -18,7 +18,7 @@ class LLMService:
         Generate a response using the local LLM
         """
         try:
-            full_prompt = f"{context}\n\n{prompt}" if context else prompt
+            full_prompt = f"{context}\n\nUser request:\n{prompt}" if context else prompt
 
             # Run blocking call in thread pool
             loop = asyncio.get_event_loop()
@@ -26,7 +26,12 @@ class LLMService:
                 executor,
                 lambda: self.client.chat(
                     model=self.model,
-                    messages=[{'role': 'user', 'content': full_prompt}]
+                    messages=[
+                        {'role': 'system', 'content': settings.assistant_system_prompt},
+                        {'role': 'user', 'content': full_prompt}
+                    ],
+                    options={'num_predict': settings.llm_num_predict},
+                    keep_alive='10m'
                 )
             )
 

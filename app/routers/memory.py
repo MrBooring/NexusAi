@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.memory import memory_service
 from app.services.llm import llm_service
+from app.config.settings import settings
+from app.services.user_learning import user_learning_service
 from app.models.conversation import (
     Conversation, ConversationRequest, ConversationResponse, 
     SearchRequest, Message
@@ -41,6 +43,8 @@ async def get_conversation(conversation_id: str):
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
         return conversation
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -67,10 +71,18 @@ async def add_message(conversation_id: str, request: AddMessageRequest):
         )
         
         # Get LLM response based on conversation context
+        context_messages = conversation.messages[:-1][-settings.max_chat_context_messages:]
         conversation_context = "\n".join([
             f"{msg.role}: {msg.content}"
-            for msg in conversation.messages[:-1]  # Exclude the message we just added
+            for msg in context_messages
         ])
+        if len(conversation_context) > settings.max_chat_context_chars:
+            conversation_context = conversation_context[-settings.max_chat_context_chars:]
+
+        await memory_service.ensure_user_profile("local_user")
+        personalized_context = await user_learning_service.get_response_guidance("local_user")
+        if personalized_context:
+            conversation_context = f"{personalized_context}\n\nRecent conversation:\n{conversation_context}"
         
         llm_response = await llm_service.generate_response(
             prompt=request.message,
@@ -127,6 +139,8 @@ async def get_conversation_summary(conversation_id: str):
             "summary": summary,
             "message_count": len(conversation.messages)
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friday</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        :root {
+            color-scheme: dark;
+            --bg: #020611;
+            --bg-2: #071226;
+            --line: rgba(103, 232, 249, 0.22);
+            --cyan: #67e8f9;
+            --cyan-strong: #22d3ee;
+            --green: #34d399;
+            --text: #ecfeff;
+            --muted: #86a7b5;
+            --panel: rgba(4, 15, 24, 0.52);
+            --panel-solid: rgba(6, 20, 34, 0.84);
+            --danger: #fda4af;
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background:
+                radial-gradient(circle at 50% 45%, rgba(34, 211, 238, 0.15), transparent 18%),
+                radial-gradient(circle at 50% 50%, rgba(103, 232, 249, 0.10), transparent 28%),
+                radial-gradient(circle at top, rgba(52, 211, 153, 0.08), transparent 30%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+            color: var(--text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .scene {
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .grid {
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(rgba(103, 232, 249, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(103, 232, 249, 0.04) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: radial-gradient(circle at center, black 36%, transparent 78%);
+            pointer-events: none;
+        }
+
+        .hud {
+            position: absolute;
+            inset: 0;
+            padding: 24px 28px;
+            display: grid;
+            grid-template-columns: 320px 1fr 360px;
+            grid-template-rows: auto 1fr auto;
+            gap: 18px;
+        }
+
+        .brand {
+            align-self: start;
+        }
+
+        .eyebrow {
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 0.74rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.3rem, 4.5vw, 4.2rem);
+            font-weight: 700;
+            line-height: 0.98;
+        }
+
+        .brand p {
+            margin: 12px 0 0;
+            color: var(--muted);
+            max-width: 260px;
+            line-height: 1.55;
+            font-size: 0.95rem;
+        }
+
+        .status {
+            grid-column: 1;
+            grid-row: 2;
+            align-self: start;
+            width: 100%;
+            padding: 16px 18px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            backdrop-filter: blur(18px);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(103, 232, 249, 0.08);
+            font-size: 0.92rem;
+        }
+
+        .status-row:last-child { border-bottom: none; }
+        .status-label { color: var(--muted); }
+        .status-value { color: var(--text); text-align: right; }
+
+        .core-wrap {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 0;
+        }
+
+        .core {
+            position: relative;
+            width: min(42vw, 420px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .ring,
+        .ring::before,
+        .ring::after {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid rgba(103, 232, 249, 0.16);
+            content: "";
+        }
+
+        .ring::before { inset: 8%; }
+        .ring::after { inset: 16%; }
+
+        .core::before,
+        .core::after {
+            content: "";
+            position: absolute;
+            inset: 12%;
+            border-radius: 50%;
+            border: 1px solid rgba(52, 211, 153, 0.18);
+            animation: drift 8s linear infinite;
+        }
+
+        .core::after {
+            inset: 24%;
+            animation-duration: 11s;
+            animation-direction: reverse;
+        }
+
+        .orb {
+            position: relative;
+            width: 42%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 35%, rgba(255,255,255,0.9), rgba(103, 232, 249, 0.24) 18%, rgba(34, 211, 238, 0.26) 42%, rgba(2, 6, 17, 0.9) 82%);
+            box-shadow:
+                0 0 32px rgba(103, 232, 249, 0.34),
+                0 0 88px rgba(34, 211, 238, 0.18),
+                inset 0 0 36px rgba(255, 255, 255, 0.16);
+            animation: breathe 3.4s ease-in-out infinite;
+        }
+
+        .core.listening .orb,
+        .core.speaking .orb {
+            animation-duration: 1.1s;
+            box-shadow:
+                0 0 40px rgba(52, 211, 153, 0.4),
+                0 0 110px rgba(34, 211, 238, 0.28),
+                inset 0 0 42px rgba(255, 255, 255, 0.2);
+        }
+
+        .core-label {
+            position: absolute;
+            bottom: 14%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            width: min(360px, 88%);
+        }
+
+        .core-state {
+            font-size: 1.24rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .core-hint {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            backdrop-filter: blur(18px);
+            overflow: hidden;
+        }
+
+        .panel-head {
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid rgba(103, 232, 249, 0.08);
+        }
+
+        .panel-head h2 {
+            margin: 0;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--cyan);
+        }
+
+        .panel-head p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .transcript-panel {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            min-height: 420px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 32px rgba(34, 211, 238, 0.08);
+        }
+
+        .transcript-body {
+            padding: 16px;
+            display: grid;
+            grid-auto-rows: min-content;
+            gap: 14px;
+            overflow: auto;
+        }
+
+        .live-block {
+            padding: 16px;
+            border: 1px solid rgba(103, 232, 249, 0.18);
+            border-radius: 8px;
+            background: rgba(3, 12, 20, 0.72);
+            min-height: 152px;
+        }
+
+        .live-label {
+            color: var(--muted);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+
+        .live-value {
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-size: 1rem;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .conversation-panel {
+            grid-column: 1 / span 3;
+            grid-row: 3;
+            min-height: 230px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+        }
+
+        .sessions {
+            border-right: 1px solid rgba(103, 232, 249, 0.08);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .session-list {
+            overflow: auto;
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .session {
+            padding: 12px 14px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: rgba(3, 12, 20, 0.48);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .session:hover,
+        .session.active {
+            border-color: rgba(103, 232, 249, 0.34);
+            transform: translateY(-1px);
+        }
+
+        .session-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .session-meta,
+        .session-preview {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .messages {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            min-height: 0;
+        }
+
+        .message-stream {
+            overflow: auto;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: min(72ch, 88%);
+            padding: 13px 15px;
+            border-radius: 8px;
+            background: rgba(5, 18, 30, 0.82);
+            border: 1px solid rgba(103, 232, 249, 0.10);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .message.user {
+            justify-self: end;
+            border-color: rgba(52, 211, 153, 0.2);
+        }
+
+        .message.assistant {
+            justify-self: start;
+        }
+
+        .message-meta {
+            color: var(--muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+        }
+
+        .composer {
+            border-top: 1px solid rgba(103, 232, 249, 0.08);
+            padding: 12px 16px 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .composer textarea {
+            width: 100%;
+            min-height: 70px;
+            max-height: 160px;
+            resize: vertical;
+            border: none;
+            border-radius: 8px;
+            background: rgba(3, 12, 20, 0.62);
+            color: var(--text);
+            padding: 14px;
+            font: inherit;
+            line-height: 1.5;
+            outline: 1px solid rgba(103, 232, 249, 0.12);
+        }
+
+        .composer textarea:focus {
+            outline: 1px solid rgba(103, 232, 249, 0.34);
+        }
+
+        .composer-hint {
+            color: var(--muted);
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .minimal {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .danger { color: var(--danger); }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.98); }
+            50% { transform: scale(1.04); }
+        }
+
+        @keyframes drift {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1180px) {
+            .hud {
+                grid-template-columns: 300px 1fr;
+            }
+
+            .status {
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .core-wrap {
+                grid-column: 2;
+            }
+
+             .transcript-panel {
+                grid-column: 1;
+                grid-row: 3;
+                min-height: 320px;
+            }
+
+            .conversation-panel {
+                grid-column: 1 / span 2;
+                grid-row: 4;
+            }
+        }
+
+        @media (max-width: 900px) {
+            html, body { overflow: auto; }
+
+            .scene { min-height: auto; }
+
+            .hud {
+                position: static;
+                min-height: 100vh;
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto auto;
+                padding: 16px;
+            }
+
+            .brand, .status, .transcript-panel, .core-wrap, .conversation-panel {
+                grid-column: 1;
+                width: 100%;
+            }
+
+            .conversation-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .transcript-panel {
+                min-height: 0;
+            }
+
+            .sessions {
+                border-right: none;
+                border-bottom: 1px solid rgba(103, 232, 249, 0.08);
+            }
+
+            .core {
+                width: min(84vw, 360px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="grid"></div>
+        <div class="hud">
+            <section class="brand">
+                <div class="eyebrow">Friday Interface</div>
+                <h1>Friday</h1>
+                <p>An immersive local assistant. Speak to the core, watch the transcript appear, and keep the conversation flowing.</p>
+            </section>
+
+            <section class="status panel">
+                <div class="status-row">
+                    <span class="status-label">Mode</span>
+                    <span class="status-value" id="modeState">Initializing</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Speech Input</span>
+                    <span class="status-value" id="sttState">Checking</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Speech Output</span>
+                    <span class="status-value" id="ttsState">Checking</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Session</span>
+                    <span class="status-value" id="sessionState">Preparing</span>
+                </div>
+            </section>
+
+            <section class="transcript-panel panel">
+                <div class="panel-head">
+                    <h2>Live Channel</h2>
+                    <p>What Friday hears and what Friday is about to say.</p>
+                </div>
+                <div class="transcript-body">
+                    <div class="live-block">
+                        <div class="live-label">Recognized Speech</div>
+                        <div class="live-value" id="recognizedTranscript">Waiting for your voice.</div>
+                    </div>
+                    <div class="live-block">
+                        <div class="live-label">Friday</div>
+                        <div class="live-value" id="latestReply">Friday will greet you on arrival.</div>
+                    </div>
+                    <div class="minimal" id="runtimeState">Loading Friday...</div>
+                    <audio id="replyAudio" hidden></audio>
+                </div>
+            </section>
+
+            <section class="core-wrap">
+                <div class="core" id="core">
+                    <div class="ring"></div>
+                    <div class="orb"></div>
+                    <div class="core-label">
+                        <div class="core-state" id="coreState">Standby</div>
+                        <div class="core-hint" id="coreHint">Friday is always listening for her name. Say “Friday” and then your request. Press `N` for a new chat, `/` to type.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="conversation-panel panel">
+                <div class="sessions">
+                    <div class="panel-head">
+                        <h2>Sessions</h2>
+                        <p>A new Friday conversation opens when this page loads.</p>
+                    </div>
+                    <div class="session-list" id="sessionList">
+                        <div class="minimal">Loading sessions...</div>
+                    </div>
+                </div>
+
+                <div class="messages">
+                    <div class="message-stream" id="messageStream">
+                        <div class="minimal">Conversation feed is waking up.</div>
+                    </div>
+                    <div class="composer">
+                        <textarea id="textPrompt" placeholder="Type to Friday. Press Enter to send, Shift+Enter for a new line."></textarea>
+                        <div class="composer-hint">
+                            <span>Wake word: “Friday” • N: new session • /: focus typing • Esc: stop speech</span>
+                            <span id="composerState">Friday is getting ready.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const BrowserSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        const state = {
+            recognition: null,
+            recognitionActive: false,
+            passiveListening: false,
+            browserSttSupported: !!BrowserSpeechRecognition,
+            browserTtsSupported: 'speechSynthesis' in window,
+            activeConversationId: null,
+            sessionConversationId: null,
+            conversations: [],
+            latestAssistantReply: '',
+            pendingRecognitionTranscript: '',
+            lastHeardTranscript: '',
+            wakeWindowArmed: false,
+            lastWakeAt: 0,
+            voiceSubmitInFlight: false,
+            pendingVoiceMessage: '',
+            busy: false,
+            greetingSpoken: false,
+        };
+
+        const els = {
+            modeState: document.getElementById('modeState'),
+            sttState: document.getElementById('sttState'),
+            ttsState: document.getElementById('ttsState'),
+            sessionState: document.getElementById('sessionState'),
+            recognizedTranscript: document.getElementById('recognizedTranscript'),
+            latestReply: document.getElementById('latestReply'),
+            runtimeState: document.getElementById('runtimeState'),
+            core: document.getElementById('core'),
+            coreState: document.getElementById('coreState'),
+            coreHint: document.getElementById('coreHint'),
+            sessionList: document.getElementById('sessionList'),
+            messageStream: document.getElementById('messageStream'),
+            textPrompt: document.getElementById('textPrompt'),
+            composerState: document.getElementById('composerState'),
+            replyAudio: document.getElementById('replyAudio'),
+        };
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return 'now';
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) return 'now';
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function setMode(mode, detail) {
+            els.modeState.textContent = mode;
+            els.runtimeState.textContent = detail;
+            els.composerState.textContent = detail;
+        }
+
+        function setCoreVisual(mode) {
+            els.core.classList.toggle('listening', mode === 'listening');
+            els.core.classList.toggle('speaking', mode === 'speaking');
+            if (mode === 'listening') {
+                els.coreState.textContent = 'Listening';
+            } else if (mode === 'standby') {
+                els.coreState.textContent = 'Standby';
+            } else if (mode === 'speaking') {
+                els.coreState.textContent = 'Speaking';
+            } else if (mode === 'thinking') {
+                els.coreState.textContent = 'Thinking';
+            } else {
+                els.coreState.textContent = 'Standby';
+            }
+        }
+
+        function shouldAutoRestartRecognition() {
+            return state.browserSttSupported && state.passiveListening && !state.busy && !state.voiceSubmitInFlight;
+        }
+
+        function scheduleRecognitionRestart(delay = 250) {
+            if (!shouldAutoRestartRecognition()) return;
+            window.setTimeout(() => {
+                if (!shouldAutoRestartRecognition() || state.recognitionActive || !state.recognition) {
+                    return;
+                }
+                try {
+                    state.recognition.start();
+                } catch (error) {
+                    setMode('Standby', 'Friday is waiting for the wake word.');
+                }
+            }, delay);
+        }
+
+        function extractWakeWordIntent(rawText) {
+            const text = (rawText || '').trim();
+            if (!text) {
+                return { heardWakeWord: false, message: '' };
+            }
+
+            const normalized = text.toLowerCase();
+            const wakeWordPattern = /\bfriday\b[\s,.:;-]*/i;
+            const heardWakeWord = wakeWordPattern.test(text);
+            const now = Date.now();
+
+            if (heardWakeWord) {
+                const message = text.replace(wakeWordPattern, '').trim();
+                state.wakeWindowArmed = true;
+                state.lastWakeAt = now;
+                return { heardWakeWord: true, message };
+            }
+
+            if (state.wakeWindowArmed && (now - state.lastWakeAt) < 7000) {
+                return { heardWakeWord: false, message: text };
+            }
+
+            return { heardWakeWord: false, message: '' };
+        }
+
+        function updateLiveTranscript(text, note = '') {
+            const heard = (text || '').trim();
+            state.lastHeardTranscript = heard;
+            if (!heard) {
+                els.recognizedTranscript.textContent = 'Waiting for your voice.';
+                return;
+            }
+
+            els.recognizedTranscript.textContent = note ? `${heard}\n\n${note}` : heard;
+        }
+
+        async function fetchJson(url, options) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || data.error || 'Request failed');
+            }
+            return data;
+        }
+
+        function previewText(text) {
+            const value = (text || '').trim();
+            return value.length > 64 ? `${value.slice(0, 61)}...` : value || 'Fresh session';
+        }
+
+        function renderSessionList() {
+            if (!state.conversations.length) {
+                els.sessionList.innerHTML = '<div class="minimal">No sessions yet.</div>';
+                return;
+            }
+
+            els.sessionList.innerHTML = state.conversations.map((conversation, index) => {
+                const messages = Array.isArray(conversation.messages) ? conversation.messages : [];
+                const lastMessage = messages.length ? messages[messages.length - 1].content : '';
+                const title = conversation.title || `Friday Session ${index + 1}`;
+                return `
+                    <div class="session ${conversation.conversation_id === state.activeConversationId ? 'active' : ''}"
+                        data-conversation-id="${escapeHtml(conversation.conversation_id)}">
+                        <div class="session-title">${escapeHtml(title)}</div>
+                        <div class="session-preview">${escapeHtml(previewText(lastMessage))}</div>
+                        <div class="session-meta">${messages.length} messages</div>
+                    </div>
+                `;
+            }).join('');
+
+            els.sessionList.querySelectorAll('[data-conversation-id]').forEach((node) => {
+                node.addEventListener('click', async () => {
+                    state.activeConversationId = node.dataset.conversationId;
+                    await loadConversation(state.activeConversationId);
+                    renderSessionList();
+                });
+            });
+        }
+
+        function getGreetingMessage() {
+            return {
+                role: 'assistant',
+                content: "Hey, I’m Friday. I’ve opened a fresh session for us. Tell me what you need, and I’ll keep it sharp, helpful, and a little less boring than the average assistant.",
+                timestamp: new Date().toISOString(),
+                ephemeral: true,
+            };
+        }
+
+        function renderMessages(messages) {
+            const baseMessages = Array.isArray(messages) ? messages.slice() : [];
+            if (state.activeConversationId === state.sessionConversationId) {
+                baseMessages.unshift(getGreetingMessage());
+            }
+
+            if (!baseMessages.length) {
+                els.messageStream.innerHTML = '<div class="minimal">This session is ready.</div>';
+                return;
+            }
+
+            els.messageStream.innerHTML = baseMessages.map((message) => `
+                <div class="message ${escapeHtml(message.role || 'assistant')}">
+                    <div class="message-meta">${escapeHtml((message.role || 'assistant').toUpperCase())} • ${escapeHtml(formatTime(message.timestamp))}</div>
+                    ${escapeHtml(message.content || '')}
+                </div>
+            `).join('');
+
+            els.messageStream.scrollTop = els.messageStream.scrollHeight;
+        }
+
+        async function loadConversation(conversationId) {
+            const conversation = await fetchJson(`${API_BASE}/memory/conversations/${conversationId}`);
+            state.activeConversationId = conversation.conversation_id;
+            els.sessionState.textContent = state.activeConversationId.slice(0, 8);
+            renderMessages(conversation.messages || []);
+        }
+
+        async function loadConversations() {
+            const data = await fetchJson(`${API_BASE}/memory/conversations`);
+            state.conversations = Array.isArray(data.conversations) ? data.conversations : [];
+            renderSessionList();
+        }
+
+        async function createConversation(autoGreeting = false) {
+            const data = await fetchJson(`${API_BASE}/memory/conversations/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: 'Friday Session', metadata: { source: 'friday_ui' } }),
+            });
+
+            state.activeConversationId = data.conversation_id;
+            state.sessionConversationId = data.conversation_id;
+            els.sessionState.textContent = data.conversation_id.slice(0, 8);
+            await loadConversations();
+            await loadConversation(state.activeConversationId);
+            renderSessionList();
+
+            if (autoGreeting) {
+                const greeting = getGreetingMessage().content;
+                els.latestReply.textContent = greeting;
+                state.latestAssistantReply = greeting;
+                setMode('Ready', 'Friday opened a new session and is ready.');
+                if (!state.greetingSpoken) {
+                    speakResponse(greeting);
+                    state.greetingSpoken = true;
+                }
+            }
+        }
+
+        async function ensureConversation() {
+            if (!state.activeConversationId) {
+                await createConversation(true);
+            }
+        }
+
+        async function sendMessage(text, source = 'text') {
+            const message = (text || '').trim();
+            if (!message) return;
+
+            await ensureConversation();
+            state.busy = true;
+            setCoreVisual('thinking');
+            setMode('Thinking', source === 'voice' ? 'Friday is responding to your voice.' : 'Friday is responding.');
+
+            try {
+                const data = await fetchJson(`${API_BASE}/memory/conversations/${state.activeConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message }),
+                });
+
+                els.recognizedTranscript.textContent = message;
+                els.latestReply.textContent = data.assistant_response || 'No response returned.';
+                state.latestAssistantReply = data.assistant_response || '';
+                els.textPrompt.value = '';
+                await loadConversations();
+                await loadConversation(state.activeConversationId);
+
+                if (state.latestAssistantReply) {
+                    await speakResponse(state.latestAssistantReply);
+                } else {
+                    setCoreVisual('idle');
+                }
+
+                setMode('Ready', 'Friday is ready for the next step.');
+            } catch (error) {
+                setCoreVisual('idle');
+                setMode('Error', error.message);
+                els.latestReply.textContent = error.message;
+            } finally {
+                state.busy = false;
+                if (source === 'voice') {
+                    state.wakeWindowArmed = false;
+                    state.voiceSubmitInFlight = false;
+                    state.pendingVoiceMessage = '';
+                }
+                scheduleRecognitionRestart(500);
+            }
+        }
+
+        async function speakWithServer(text) {
+            const data = await fetchJson(`${API_BASE}/voice/speak`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text }),
+            });
+            if (!data.audio_url) {
+                throw new Error('Friday could not generate speech audio.');
+            }
+
+            els.replyAudio.src = `${API_BASE}${data.audio_url}`;
+            els.replyAudio.hidden = false;
+            setCoreVisual('speaking');
+            setMode('Speaking', 'Friday is speaking.');
+            await els.replyAudio.play();
+            await new Promise((resolve, reject) => {
+                els.replyAudio.onended = () => resolve(true);
+                els.replyAudio.onerror = () => reject(new Error('Server audio playback failed.'));
+            });
+            return true;
+        }
+
+        function speakWithBrowser(text) {
+            if (!state.browserTtsSupported || !text) return Promise.resolve(false);
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find((voice) => /female|zira|aria|samantha|natural/i.test(voice.name))
+                || voices.find((voice) => /en/i.test(voice.lang))
+                || voices[0];
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            return new Promise((resolve, reject) => {
+                let started = false;
+                const timeout = window.setTimeout(() => {
+                    if (!started) {
+                        reject(new Error('Browser speech did not start.'));
+                    }
+                }, 1200);
+
+                utterance.onstart = () => {
+                    started = true;
+                    window.clearTimeout(timeout);
+                    setCoreVisual('speaking');
+                    setMode('Speaking', 'Friday is speaking.');
+                };
+                utterance.onend = () => {
+                    window.clearTimeout(timeout);
+                    resolve(true);
+                };
+                utterance.onerror = () => {
+                    window.clearTimeout(timeout);
+                    reject(new Error('Browser speech playback failed.'));
+                };
+
+                try {
+                    window.speechSynthesis.speak(utterance);
+                } catch (error) {
+                    window.clearTimeout(timeout);
+                    reject(error);
+                }
+            });
+        }
+
+        async function speakResponse(text) {
+            if (!text) return false;
+                try {
+                    await speakWithBrowser(text);
+                    setCoreVisual('standby');
+                    setMode('Standby', 'Friday is waiting for the wake word.');
+                    return true;
+                } catch (error) {
+                    try {
+                        await speakWithServer(text);
+                        setCoreVisual('standby');
+                        setMode('Standby', 'Friday is waiting for the wake word.');
+                        return true;
+                    } catch (serverError) {
+                        setCoreVisual('standby');
+                        setMode('Ready', 'Friday replied, but speech playback is unavailable.');
+                        return false;
+                }
+            }
+        }
+
+        function setupRecognition() {
+            if (!state.browserSttSupported || state.recognition) return;
+
+            const recognition = new BrowserSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onstart = () => {
+                state.recognitionActive = true;
+                state.pendingRecognitionTranscript = '';
+                setCoreVisual('standby');
+                setMode('Standby', 'Friday is passively listening for the wake word.');
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                    const transcript = event.results[i][0].transcript || '';
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interim += transcript;
+                    }
+                }
+
+                const liveText = (finalTranscript || interim).trim();
+                if (liveText) {
+                    updateLiveTranscript(liveText);
+                }
+                if (finalTranscript.trim()) {
+                    state.pendingRecognitionTranscript = finalTranscript.trim();
+                }
+
+                const intent = extractWakeWordIntent(finalTranscript || interim);
+                if (intent.heardWakeWord && !intent.message) {
+                    setCoreVisual('listening');
+                    setMode('Listening', 'Wake word heard. Friday is ready for your request.');
+                    updateLiveTranscript(liveText || finalTranscript || interim, 'Wake word detected: Friday');
+                } else if (intent.message) {
+                    updateLiveTranscript(liveText || finalTranscript || interim, 'Wake word understood. Sending request.');
+                    if (!state.voiceSubmitInFlight && finalTranscript.trim()) {
+                        state.voiceSubmitInFlight = true;
+                        state.pendingVoiceMessage = intent.message;
+                        if (state.recognitionActive) {
+                            try {
+                                state.recognition.stop();
+                            } catch (error) {
+                                sendMessage(state.pendingVoiceMessage, 'voice');
+                            }
+                        } else {
+                            sendMessage(state.pendingVoiceMessage, 'voice');
+                        }
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                state.recognitionActive = false;
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    setCoreVisual('standby');
+                    setMode('Standby', 'Friday is waiting for the wake word.');
+                    scheduleRecognitionRestart(300);
+                    return;
+                }
+                setCoreVisual('standby');
+                setMode('Error', `Speech recognition failed: ${event.error || 'unknown error'}`);
+                scheduleRecognitionRestart(1200);
+            };
+
+            recognition.onend = async () => {
+                const transcript = (state.pendingRecognitionTranscript || '').trim();
+                state.recognitionActive = false;
+                state.pendingRecognitionTranscript = '';
+
+                if (state.pendingVoiceMessage) {
+                    const pendingMessage = state.pendingVoiceMessage;
+                    await sendMessage(pendingMessage, 'voice');
+                    return;
+                }
+
+                const intent = extractWakeWordIntent(transcript);
+                if (intent.message && !state.voiceSubmitInFlight) {
+                    state.voiceSubmitInFlight = true;
+                    state.pendingVoiceMessage = intent.message;
+                    await sendMessage(intent.message, 'voice');
+                } else if (intent.heardWakeWord) {
+                    setCoreVisual('listening');
+                    setMode('Listening', 'Wake word heard. Go ahead.');
+                    scheduleRecognitionRestart(250);
+                } else {
+                    setCoreVisual('standby');
+                    setMode('Standby', 'Friday is waiting for the wake word.');
+                    scheduleRecognitionRestart(250);
+                }
+            };
+
+            state.recognition = recognition;
+        }
+
+        function toggleListening(forceState = null) {
+            if (!state.browserSttSupported) {
+                setMode('Unavailable', 'Live browser speech recognition is not available in this browser.');
+                return;
+            }
+
+            setupRecognition();
+            if (!state.recognition) return;
+
+            const targetState = forceState === null ? !state.passiveListening : forceState;
+            state.passiveListening = targetState;
+
+            if (!targetState) {
+                state.wakeWindowArmed = false;
+                if (state.recognitionActive) {
+                    state.recognition.stop();
+                }
+                setCoreVisual('idle');
+                setMode('Paused', 'Passive listening is paused.');
+                return;
+            }
+
+            if (state.recognitionActive) {
+                setCoreVisual('standby');
+                setMode('Standby', 'Friday is waiting for the wake word.');
+                return;
+            }
+
+            if (!state.busy) {
+                try {
+                    state.recognition.start();
+                } catch (error) {
+                    setMode('Standby', 'Friday is waiting for the wake word.');
+                }
+            } else {
+                setMode('Thinking', 'Friday will resume listening after she finishes responding.');
+            }
+        }
+
+        function pauseForManualTyping() {
+            if (state.recognitionActive && state.recognition) {
+                state.recognition.stop();
+            }
+        }
+
+        async function initialize() {
+            try {
+                const voiceStatus = await fetchJson(`${API_BASE}/voice/status`);
+                els.sttState.textContent = state.browserSttSupported ? 'Live browser speech' : (voiceStatus.whisper_installed ? 'Whisper fallback' : 'Unavailable');
+                els.ttsState.textContent = state.browserTtsSupported ? 'Browser voice' : (voiceStatus.tts_installed ? 'Local voice' : 'Unavailable');
+            } catch (error) {
+                els.sttState.textContent = state.browserSttSupported ? 'Live browser speech' : 'Unavailable';
+                els.ttsState.textContent = state.browserTtsSupported ? 'Browser voice' : 'Unavailable';
+            }
+
+            await loadConversations();
+            await createConversation(true);
+            state.passiveListening = true;
+            setupRecognition();
+            setCoreVisual('standby');
+            setMode('Standby', 'Friday is live and waiting for the wake word.');
+            if (state.browserSttSupported) {
+                scheduleRecognitionRestart(900);
+            }
+        }
+
+        els.core.addEventListener('click', () => toggleListening(null));
+
+        els.textPrompt.addEventListener('keydown', async (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                await sendMessage(els.textPrompt.value, 'text');
+            }
+        });
+
+        document.addEventListener('keydown', async (event) => {
+            if (event.target === els.textPrompt) {
+                if (event.key === 'Escape') {
+                    window.speechSynthesis.cancel();
+                    els.textPrompt.blur();
+                }
+                return;
+            }
+
+            if (event.code === 'Space') {
+                event.preventDefault();
+                toggleListening(null);
+            } else if (event.key === '/') {
+                event.preventDefault();
+                pauseForManualTyping();
+                els.textPrompt.focus();
+            } else if (event.key.toLowerCase() === 'n') {
+                event.preventDefault();
+                await createConversation(true);
+            } else if (event.key === 'Escape') {
+                window.speechSynthesis.cancel();
+                if (state.recognitionActive && state.recognition) {
+                    state.recognition.stop();
+                }
+                state.passiveListening = false;
+                state.wakeWindowArmed = false;
+                setCoreVisual('idle');
+                setMode('Paused', 'Friday is standing by.');
+            }
+        });
+
+        window.addEventListener('load', initialize);
+    </script>
+</body>
+</html>

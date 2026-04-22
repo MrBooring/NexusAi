@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
-from app.services.user_learning import user_learning_service, kg_service, behavior_analyzer
+from app.services.user_learning import user_learning_service
 from app.services.memory import memory_service
 
 router = APIRouter(prefix="/users", tags=["user-learning"])
@@ -11,34 +11,39 @@ class UserIdRequest(BaseModel):
     user_id: str
 
 
+async def _build_profile_from_conversations(user_id: str):
+    """Build a user profile from currently loaded conversations."""
+    conversations = await memory_service.get_all_conversations()
+
+    if not conversations:
+        raise HTTPException(status_code=404, detail="No conversations found")
+
+    all_messages = []
+    for conv in conversations:
+        for msg in conv.messages:
+            all_messages.append((msg.role, msg.content))
+
+    return await user_learning_service.learn_from_conversation(
+        user_id=user_id,
+        messages=all_messages,
+        conversation_count=len(conversations),
+        use_llm=False
+    )
+
+
 @router.post("/profile/{user_id}/learn")
 async def learn_from_conversations(user_id: str):
     """Analyze all conversations and build user profile"""
     try:
-        # Get all conversations for the user
-        conversations = await memory_service.get_all_conversations()
-        
-        if not conversations:
-            raise HTTPException(status_code=404, detail="No conversations found")
-        
-        # Collect all messages
-        all_messages = []
-        for conv in conversations:
-            for msg in conv.messages:
-                all_messages.append((msg.role, msg.content))
-        
-        # Learn from conversations
-        profile = await user_learning_service.learn_from_conversation(
-            user_id=user_id,
-            messages=all_messages,
-            conversation_count=len(conversations)
-        )
+        profile = await _build_profile_from_conversations(user_id)
         
         return {
             "user_id": user_id,
             "profile": profile,
             "message": "User profile updated"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -49,7 +54,7 @@ async def get_user_profile(user_id: str):
     try:
         profile = await user_learning_service.get_user_profile(user_id)
         if not profile:
-            raise HTTPException(status_code=404, detail="User profile not found")
+            profile = await _build_profile_from_conversations(user_id)
         return profile
     except HTTPException:
         raise
@@ -61,7 +66,10 @@ async def get_user_profile(user_id: str):
 async def get_user_knowledge_graph(user_id: str):
     """Get user's knowledge graph"""
     try:
-        kg = await kg_service.get_knowledge_graph(user_id)
+        if not await user_learning_service.get_user_profile(user_id):
+            await _build_profile_from_conversations(user_id)
+
+        kg = await user_learning_service.kg_service.get_knowledge_graph(user_id)
         if not kg:
             raise HTTPException(status_code=404, detail="Knowledge graph not found")
         
@@ -83,7 +91,10 @@ async def get_user_knowledge_graph(user_id: str):
 async def get_user_behavior(user_id: str):
     """Get user's behavior profile"""
     try:
-        behavior = await behavior_analyzer.get_behavior_profile(user_id)
+        if not await user_learning_service.get_user_profile(user_id):
+            await _build_profile_from_conversations(user_id)
+
+        behavior = await user_learning_service.behavior_analyzer.get_behavior_profile(user_id)
         if not behavior:
             raise HTTPException(status_code=404, detail="Behavior profile not found")
         
@@ -163,7 +174,7 @@ async def get_user_insights(user_id: str):
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
-        kg = await kg_service.get_knowledge_graph(user_id)
+        kg = await user_learning_service.kg_service.get_knowledge_graph(user_id)
         
         insights = {
             "user_id": user_id,

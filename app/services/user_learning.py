@@ -154,6 +154,35 @@ Relation types: related_to, caused_by, part_of, similar_to, opposite_to, depends
         
         graph.updated_at = datetime.now()
         return graph
+
+    async def build_basic_knowledge_graph(self, user_id: str, conversation_texts: List[str]) -> KnowledgeGraph:
+        """Build a lightweight graph without calling the LLM."""
+        if user_id not in self.graphs:
+            self.graphs[user_id] = KnowledgeGraph(user_id=user_id)
+
+        graph = self.graphs[user_id]
+        text = " ".join(conversation_texts).lower()
+        words = re.findall(r"\b[a-z][a-z0-9+#.-]{3,}\b", text)
+        stop_words = {
+            "about", "after", "also", "assistant", "because", "could", "from",
+            "have", "hello", "into", "more", "should", "that", "their",
+            "there", "this", "what", "when", "where", "which", "with", "would",
+            "your"
+        }
+        for name, _ in Counter(word for word in words if word not in stop_words).most_common(10):
+            existing = next((e for e in graph.entities if e.name.lower() == name), None)
+            if existing:
+                existing.frequency += 1
+                existing.last_mention = datetime.now()
+            else:
+                graph.entities.append(Entity(
+                    entity_id=str(uuid.uuid4()),
+                    name=name,
+                    type=EntityType.TOPIC
+                ))
+
+        graph.updated_at = datetime.now()
+        return graph
     
     async def get_knowledge_graph(self, user_id: str) -> Optional[KnowledgeGraph]:
         """Get user's knowledge graph"""
@@ -166,17 +195,31 @@ class UserBehaviorAnalyzer:
     def __init__(self):
         self.behaviors: Dict[str, UserBehaviorProfile] = {}
     
-    async def analyze_messages(self, user_id: str, messages: List[Tuple[str, str]]) -> UserBehaviorProfile:
+    def _extract_basic_topics(self, user_messages: List[str]) -> List[str]:
+        text = " ".join(user_messages).lower()
+        words = re.findall(r"\b[a-z][a-z0-9+#.-]{3,}\b", text)
+        stop_words = {
+            "about", "also", "assistant", "could", "from", "have", "hello",
+            "more", "please", "should", "tell", "that", "this", "what",
+            "with", "would", "your"
+        }
+        return [
+            word for word, _ in Counter(word for word in words if word not in stop_words).most_common(5)
+        ]
+
+    async def analyze_messages(self, user_id: str, messages: List[Tuple[str, str]], use_llm: bool = True) -> UserBehaviorProfile:
         """Analyze behavioral patterns from messages"""
         if user_id not in self.behaviors:
             self.behaviors[user_id] = UserBehaviorProfile(
                 user_id=user_id,
                 communication_style="unknown",
                 preferred_topics=[],
-                response_length_preference="medium"
+                response_length_preference="medium",
+                interaction_frequency=0
             )
         
         profile = self.behaviors[user_id]
+        profile.interaction_frequency = len(messages)
         
         # Analyze message lengths
         user_messages = [msg for role, msg in messages if role == "user"]
@@ -208,19 +251,22 @@ class UserBehaviorAnalyzer:
         else:
             profile.communication_style = "balanced"
         
-        # Extract topics from user messages
         topics = []
-        for msg in user_messages[:5]:  # Analyze first few messages
-            topic_prompt = f"Extract 1-2 main topics from this message (comma-separated): {msg}"
-            try:
-                topic_response = await llm_service.generate_response(
-                    prompt=topic_prompt,
-                    context="Extract concise topics only."
-                )
-                extracted = [t.strip() for t in topic_response.split(",")]
-                topics.extend(extracted)
-            except:
-                pass
+        if use_llm:
+            for msg in user_messages[:5]:  # Analyze first few messages
+                topic_prompt = f"Extract 1-2 main topics from this message (comma-separated): {msg}"
+                try:
+                    topic_response = await llm_service.generate_response(
+                        prompt=topic_prompt,
+                        context="Extract concise topics only."
+                    )
+                    extracted = [t.strip() for t in topic_response.split(",")]
+                    topics.extend(extracted)
+                except:
+                    pass
+
+        if not topics:
+            topics = self._extract_basic_topics(user_messages)
         
         profile.preferred_topics = list(set(topics))[:5]
         profile.updated_at = datetime.now()
@@ -242,17 +288,20 @@ class UserLearningService:
         self.user_preferences: Dict[str, UserPreferences] = {}
     
     async def learn_from_conversation(self, user_id: str, messages: List[Tuple[str, str]], 
-                                     conversation_count: int = 1) -> UserProfile:
+                                     conversation_count: int = 1, use_llm: bool = True) -> UserProfile:
         """Learn from a conversation and update user profile"""
         
         # Extract messages for analysis
         message_texts = [msg for _, msg in messages]
         
         # Build/update knowledge graph
-        kg = await self.kg_service.build_knowledge_graph(user_id, message_texts)
+        if use_llm:
+            kg = await self.kg_service.build_knowledge_graph(user_id, message_texts)
+        else:
+            kg = await self.kg_service.build_basic_knowledge_graph(user_id, message_texts)
         
         # Analyze behavior
-        behavior_profile = await self.behavior_analyzer.analyze_messages(user_id, messages)
+        behavior_profile = await self.behavior_analyzer.analyze_messages(user_id, messages, use_llm=use_llm)
         
         # Create/update user preferences
         if user_id not in self.user_preferences:
@@ -312,6 +361,45 @@ class UserLearningService:
         context_parts.append(f"Preferred response length: {profile.behavior_profile.response_length_preference}")
         
         return " ".join(context_parts)
+
+    async def get_response_guidance(self, user_id: str) -> str:
+        """Get concrete response instructions derived from the user profile."""
+        profile = await self.get_user_profile(user_id)
+        if not profile:
+            return ""
+
+        style = profile.behavior_profile.communication_style or "balanced"
+        length = profile.behavior_profile.response_length_preference or "medium"
+        topics = profile.behavior_profile.preferred_topics or profile.preferences.favorite_topics
+        avoided = profile.preferences.topics_to_avoid
+
+        instructions = [
+            "Personalize the answer for this user.",
+            f"Communication style: {style}.",
+            f"Preferred response length: {length}.",
+        ]
+
+        if length == "short":
+            instructions.append("Keep the response concise and direct.")
+        elif length == "long":
+            instructions.append("Give a more complete explanation with useful detail.")
+        else:
+            instructions.append("Use a balanced amount of detail.")
+
+        if style == "technical":
+            instructions.append("Use precise technical language and concrete examples when helpful.")
+        elif style == "formal":
+            instructions.append("Use a structured, polished tone.")
+        elif style == "casual":
+            instructions.append("Use a friendly, conversational tone.")
+
+        if topics:
+            instructions.append(f"Known topics of interest: {', '.join(topics[:5])}.")
+
+        if avoided:
+            instructions.append(f"Avoid these topics unless directly requested: {', '.join(avoided[:5])}.")
+
+        return " ".join(instructions)
 
 
 # Global services

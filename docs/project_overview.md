@@ -1,73 +1,71 @@
-##📖 Project Overview
+## Project Overview
 
-## What is NexusAI?
+## What is Friday?
 
-NexusAI is a **fully local, privacy-first personal AI assistant** inspired by Jarvis from Iron Man. Unlike cloud-based assistants (Alexa, Google Assistant, Siri), NexusAI runs entirely on your local network—no data leaves your home, no API keys needed, and no subscription fees.
+Friday is a fully local, privacy-first personal AI assistant inspired by the idea of a home "brain" server. It keeps conversations, learning, and voice processing on local hardware rather than depending on cloud APIs.
 
 ## Vision
 
-Create an intelligent assistant that:
+Build an assistant that:
 
-- Understands voice commands and responds naturally
-- Runs on a central "brain" server accessible to all your devices
-- Learns your preferences and remembers context over time
-- Respects your privacy by keeping everything local
-- Scales from a single laptop to multiple devices across your home
+- understands text and voice requests
+- learns preferences and adapts responses over time
+- keeps memory and processing local
+- can serve multiple devices through a central backend
+- grows into an extensible platform for plugins and automation
 
-## Key Features
+## What Is Working Now
 
-### 🎤 Voice Interaction
+### Voice Interaction
 
-- Natural voice commands via Whisper speech recognition
-- Natural voice responses via Coqui text-to-speech
-- Support for multiple languages
+- voice endpoints for transcription, speech output, and voice-chat orchestration
+- dashboard voice panel for recording/uploading audio and playing replies
+- lazy-loaded Whisper and Coqui integration with dependency checks
 
-### 🧠 Intelligent Processing
+### Intelligent Processing
 
-- Powered by local LLMs (Llama 3, Mistral) via Ollama
-- Context-aware conversations
-- Long-term memory using vector embeddings (ChromaDB)
+- local LLM chat through Ollama
+- persistent memory with conversation summaries, topics, and search
+- learned user profile with communication style, preferred length, and topic interests
+- personalized responses based on the current user profile
 
-### 📱 Multi-Device Support
+### Multi-Device Foundation
 
-- Flutter agents run on phones, tablets, and laptops
-- Seamless handoff between devices
-- Synchronized state across all endpoints
+- device hub REST API for status and recent activity
+- WebSocket endpoint for connecting device agents
+- dashboard view of connected devices and device activity
 
-### 🔒 Privacy-First
+### Privacy First
 
-- Zero cloud dependency
-- All processing happens on your hardware
-- Complete data ownership
+- local-only architecture
+- local data persistence
+- no required API keys
 
-### 🏗️ Extensible Architecture
+## Current Phase
 
-- Plugin system for custom capabilities
-- Easy to add new devices
-- Open-source friendly
+**Current Phase**: MVP Foundation / Local Assistant Core
 
-## Use Cases
+The project has moved beyond architecture-only planning. The core assistant stack now exists, but it still needs production hardening and real client/device polish.
 
-- **Home Automation**: "Turn off the lights in the living room"
-- **Information Retrieval**: "What's on my calendar today?"
-- **Task Management**: "Add milk to my shopping list"
-- **Personal Assistant**: "Remind me to call mom at 5 PM"
-- **Knowledge Base**: "What did we discuss in yesterday's meeting?"
+## Next Milestones
 
-## Project Status
+1. Real device clients using the WebSocket device hub
+2. Streaming voice interaction for lower-latency speech UX
+3. Command/plugin execution for practical assistant tasks
+4. Better automated tests and stability checks
+5. Performance tuning toward reliable sub-2-second local responses
 
-**Current Phase**: Early Development / Architecture Design
+## Success Criteria Status
 
-**Target Timeline**: MVP in 3-4 months
-
-## Success Criteria
-
-- [ ] Brain server can process voice input and generate voice output
-- [ ] At least 2 devices can connect and communicate with the brain
-- [ ] Assistant can handle 10+ common commands reliably
-- [ ] Response time under 2 seconds for most queries
+- [x] Brain server can process text input and generate local responses
+- [x] Brain server has a voice processing API surface
+- [x] Learned profiles can personalize responses
+- [x] Multi-device communication foundation exists through WebSockets
+- [ ] At least 2 real device clients connect and communicate reliably
+- [ ] Assistant handles 10+ real-world commands end to end
+- [ ] Response time is under 2 seconds for most real workloads
 - [ ] System runs stably for 24+ hours without restart
 
 ---
 
-**Last Updated**: April 16, 2026
+**Last Updated**: April 20, 2026

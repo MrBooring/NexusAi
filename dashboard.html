@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusAI Dashboard</title>
+    <title>Friday Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -454,13 +454,134 @@
         .refresh-btn {
             margin-left: 10px;
         }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 15px;
+        }
+
+        .profile-panel {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .metric-row {
+            display: grid;
+            grid-template-columns: 150px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+            color: #cbd5e1;
+            font-size: 0.92em;
+        }
+
+        .meter {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: #10b981;
+        }
+
+        .knowledge-network {
+            position: relative;
+            min-height: 260px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background:
+                linear-gradient(90deg, rgba(51, 65, 85, 0.18) 1px, transparent 1px),
+                linear-gradient(rgba(51, 65, 85, 0.18) 1px, transparent 1px);
+            background-size: 28px 28px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .knowledge-node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            min-width: 70px;
+            max-width: 130px;
+            padding: 8px 10px;
+            border: 1px solid #60a5fa;
+            border-radius: 999px;
+            background: #1e293b;
+            color: #bfdbfe;
+            font-size: 0.82em;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.35);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .knowledge-node.central {
+            border-color: #10b981;
+            color: #a7f3d0;
+            font-weight: 700;
+        }
+
+        .relationship-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .relationship-item {
+            padding: 8px 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #cbd5e1;
+            font-size: 0.9em;
+        }
+
+        .voice-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) 1fr;
+            gap: 20px;
+        }
+
+        .voice-actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        .voice-status {
+            color: #94a3b8;
+            font-size: 0.92em;
+            margin-top: 8px;
+        }
+
+        .voice-result {
+            min-height: 260px;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .voice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🧠 NexusAI Dashboard</h1>
-            <p class="subtitle">Local AI Assistant Memory & Learning System</p>
+            <h1>Friday Dashboard</h1>
+            <p class="subtitle">Local AI memory, conversations, and learning system</p>
         </header>
 
         <div class="tabs">
@@ -495,6 +616,10 @@
                     <div class="stat-number" id="stat-users">0</div>
                     <div class="stat-label">User Profiles</div>
                 </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-devices">0</div>
+                    <div class="stat-label">Connected Devices</div>
+                </div>
             </div>
 
             <div class="card">
@@ -505,6 +630,11 @@
             <div class="card">
                 <h3>Important Conversations</h3>
                 <div id="importantConversationsContainer"></div>
+            </div>
+
+            <div class="card">
+                <h3>Device Hub</h3>
+                <div id="deviceHubContainer"></div>
             </div>
         </div>
 
@@ -529,6 +659,21 @@
 
         <!-- CHAT TAB -->
         <div id="chat" class="tab-content">
+            <div class="card" style="margin-bottom: 20px;">
+                <h3>Voice Interaction</h3>
+                <div class="voice-grid">
+                    <div>
+                        <div class="voice-actions">
+                            <button id="recordButton" onclick="toggleRecording()">Start Recording</button>
+                            <input id="voiceFileInput" type="file" accept="audio/*">
+                            <button onclick="submitVoiceInput()">Send Voice Input</button>
+                        </div>
+                        <div id="voiceStatus" class="voice-status">Ready</div>
+                        <div id="voiceDependencyStatus" class="voice-status"></div>
+                    </div>
+                    <div id="voiceResultContainer" class="voice-result conversation-meta">Record or upload audio to begin.</div>
+                </div>
+            </div>
             <div class="chat-layout">
                 <!-- Sidebar with conversation list -->
                 <div class="chat-sidebar">
@@ -589,6 +734,9 @@
         let allConversations = [];
         let allUserProfiles = [];
         let activeConversationId = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let voiceBlob = null;
 
         // Tab switching
         function switchTab(tabName) {
@@ -601,6 +749,7 @@
             if (tabName === 'conversations') loadConversations();
             if (tabName === 'users') loadUserProfiles();
             if (tabName === 'chat') loadChatConversations();
+            if (tabName === 'chat') loadVoiceStatus();
             if (tabName === 'overview') loadStats();
         }
 
@@ -612,13 +761,70 @@
                 
                 document.getElementById('stat-convs').textContent = data.total_conversations || 0;
                 document.getElementById('stat-msgs').textContent = data.total_messages || 0;
-                document.getElementById('stat-topics').textContent = data.unique_topics || 0;
-                document.getElementById('stat-users').textContent = 0; // Will update when loading profiles
+                document.getElementById('stat-topics').textContent = data.unique_topics ?? asList(data.top_topics).length;
+                document.getElementById('stat-users').textContent = await getUserProfileCount();
+                await loadDeviceHub();
 
                 await loadRecentConversations();
                 await loadImportantConversations();
             } catch (error) {
                 showError('Failed to load statistics');
+            }
+        }
+
+        async function getUserProfileCount() {
+            try {
+                const response = await fetch(`${API_BASE}/users/profile/local_user`);
+                return response.ok ? 1 : 0;
+            } catch (error) {
+                console.error('Error checking user profile count:', error);
+                return 0;
+            }
+        }
+
+        async function loadDeviceHub() {
+            try {
+                const response = await fetch(`${API_BASE}/devices`);
+                const data = await response.json();
+                document.getElementById('stat-devices').textContent = data.active_devices || 0;
+
+                const container = document.getElementById('deviceHubContainer');
+                if (!data.devices || data.devices.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No devices connected yet</p></div>';
+                    return;
+                }
+
+                let html = '';
+                data.devices.forEach(device => {
+                    html += `
+                        <div class="card" style="margin-bottom: 10px;">
+                            <div class="conversation-title">${escapeHtml(device.device_id)}</div>
+                            <div class="conversation-meta">
+                                Type: ${escapeHtml(device.device_type || 'unknown')} |
+                                Status: ${escapeHtml(device.status || 'unknown')}
+                            </div>
+                            <div class="conversation-meta" style="margin-top: 4px;">
+                                Last seen: ${device.last_seen ? new Date(device.last_seen).toLocaleString() : 'N/A'}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (data.recent_messages && data.recent_messages.length > 0) {
+                    html += '<div style="margin-top: 12px;"><strong>Recent device activity</strong></div>';
+                    data.recent_messages.forEach(item => {
+                        html += `
+                            <div class="relationship-item">
+                                ${escapeHtml(item.sender)} -> ${escapeHtml(JSON.stringify(item.payload))}
+                            </div>
+                        `;
+                    });
+                }
+
+                container.innerHTML = html;
+            } catch (error) {
+                document.getElementById('stat-devices').textContent = 0;
+                document.getElementById('deviceHubContainer').innerHTML = '<div class="empty-state"><p>Device hub unavailable</p></div>';
             }
         }
 
@@ -844,6 +1050,124 @@
             }
         }
 
+        async function loadVoiceStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/voice/status`);
+                const data = await response.json();
+                const lines = [];
+                lines.push(`Whisper: ${data.whisper_installed ? 'available' : 'missing'}`);
+                lines.push(`TTS: ${data.tts_installed ? 'available' : 'missing'}`);
+                lines.push(`STT model: ${data.whisper_model}`);
+                lines.push(`TTS model: ${data.tts_model}`);
+                document.getElementById('voiceDependencyStatus').textContent = lines.join(' | ');
+            } catch (error) {
+                document.getElementById('voiceDependencyStatus').textContent = `Voice status unavailable: ${error.message}`;
+            }
+        }
+
+        async function toggleRecording() {
+            const button = document.getElementById('recordButton');
+            const status = document.getElementById('voiceStatus');
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                button.textContent = 'Start Recording';
+                status.textContent = 'Stopping recording...';
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) recordedChunks.push(event.data);
+                };
+                mediaRecorder.onstop = () => {
+                    voiceBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    document.getElementById('voiceStatus').textContent = 'Recording ready to send.';
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                mediaRecorder.start();
+                button.textContent = 'Stop Recording';
+                status.textContent = 'Recording...';
+            } catch (error) {
+                status.textContent = `Recording failed: ${error.message}`;
+            }
+        }
+
+        async function submitVoiceInput() {
+            const status = document.getElementById('voiceStatus');
+            const resultContainer = document.getElementById('voiceResultContainer');
+            const fileInput = document.getElementById('voiceFileInput');
+            const file = fileInput.files[0];
+            const audioPayload = file || voiceBlob;
+
+            if (!audioPayload) {
+                status.textContent = 'Choose or record audio first.';
+                return;
+            }
+
+            status.textContent = 'Processing voice input...';
+            resultContainer.innerHTML = '<div class="loading">Transcribing and generating response...</div>';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', audioPayload, file ? file.name : 'recording.webm');
+                if (activeConversationId) {
+                    formData.append('conversation_id', activeConversationId);
+                }
+
+                const response = await fetch(`${API_BASE}/voice/respond`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Voice request failed');
+                }
+
+                activeConversationId = data.conversation_id;
+                status.textContent = 'Voice response ready.';
+                
+                let audioSection = '';
+                if (data.audio_url) {
+                    audioSection = `<audio class="audio-player" controls src="${API_BASE}${data.audio_url}"></audio>`;
+                }
+                
+                let ttsErrorSection = '';
+                if (data.tts_error) {
+                    ttsErrorSection = `
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin-top: 12px; color: #991b1b;">
+                            <strong>💬 Text-Only Mode:</strong> ${escapeHtml(data.tts_error)}
+                            <p style="font-size: 0.9em; margin-top: 8px;">Your response is ready above. Voice output will be available once TTS dependencies are properly installed.</p>
+                        </div>
+                    `;
+                }
+                
+                resultContainer.innerHTML = `
+                    <div class="message-box user">
+                        <div class="message-role">TRANSCRIPT</div>
+                        <div class="message-content">${escapeHtml(data.transcript)}</div>
+                    </div>
+                    <div class="message-box assistant">
+                        <div class="message-role">ASSISTANT</div>
+                        <div class="message-content">${escapeHtml(data.response)}</div>
+                    </div>
+                    ${audioSection}
+                    ${ttsErrorSection}
+                `;
+
+                await loadChatConversations();
+                await loadStats();
+                fileInput.value = '';
+                voiceBlob = null;
+            } catch (error) {
+                status.textContent = `Voice request failed: ${error.message}`;
+                resultContainer.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
         // Load user profiles
         async function loadUserProfiles() {
             try {
@@ -853,6 +1177,7 @@
                 // For single-user system, load the default user profile
                 const response = await fetch(`${API_BASE}/users/profile/local_user`);
                 if (response.status === 404) {
+                    document.getElementById('stat-users').textContent = 0;
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-state-icon">👤</div>
@@ -865,6 +1190,7 @@
                 }
 
                 const profile = await response.json();
+                document.getElementById('stat-users').textContent = 1;
                 displayUserProfile(profile);
 
             } catch (error) {
@@ -875,15 +1201,75 @@
 
         function displayUserProfile(profile) {
             const container = document.getElementById('userProfilesContainer');
+            const behavior = profile.behavior_profile || {};
+            const preferences = profile.preferences || {};
+            const graph = profile.knowledge_graph || {};
+            const entities = asList(graph.entities);
+            const relationships = asList(graph.relationships);
+            const responseLength = behavior.response_length_preference
+                || behavior.preferred_response_length
+                || 'unknown';
+            const behaviorTopics = asList(behavior.preferred_topics
+                || behavior.common_topics
+                || []);
+            const preferenceTopics = asList(preferences.favorite_topics
+                || preferences.preferred_topics
+                || []);
+            const style = behavior.communication_style || 'unknown';
+            const totalMessages = profile.total_messages || 0;
+            const totalConversations = profile.total_conversations || 0;
+
+            container.innerHTML = `
+                <div class="card">
+                    <h3>Your AI Learning Profile</h3>
+                    <div class="profile-grid">
+                        <div class="profile-panel">
+                            <h4>Behavior Pattern</h4>
+                            ${renderMetric('Conversations', Math.min(totalConversations * 25, 100), totalConversations)}
+                            ${renderMetric('Messages Learned', Math.min(totalMessages * 8, 100), totalMessages)}
+                            ${renderMetric('Briefness', responseLength === 'short' ? 85 : responseLength === 'medium' ? 55 : 25, responseLength)}
+                            ${renderMetric('Technical Style', style === 'technical' ? 90 : style === 'balanced' ? 50 : 25, style)}
+                            <p style="margin-top: 12px;"><strong>Communication:</strong> ${escapeHtml(style)}</p>
+                            <p><strong>Response Length:</strong> ${escapeHtml(responseLength)}</p>
+                        </div>
+
+                        <div class="profile-panel">
+                            <h4>Topics of Interest</h4>
+                            ${renderTags(behaviorTopics.length ? behaviorTopics : preferenceTopics, 'topic')}
+                            <h4 style="margin-top: 16px;">Learned Preferences</h4>
+                            <p><strong>Explanation:</strong> ${escapeHtml(preferences.explanation_style || 'simple')}</p>
+                            <p><strong>Language:</strong> ${escapeHtml(preferences.language || 'en')}</p>
+                            ${preferences.custom_instructions ? `<p><strong>Custom:</strong> ${escapeHtml(preferences.custom_instructions)}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="profile-panel" style="margin-top: 16px;">
+                        <h4>Knowledge Graph</h4>
+                        <p><strong>Entities Learned:</strong> ${entities.length} | <strong>Relationships:</strong> ${relationships.length}</p>
+                        ${renderKnowledgeNetwork(entities)}
+                        ${renderRelationshipList(relationships, entities)}
+                    </div>
+                </div>
+            `;
+            return;
+            {
+            const container = document.getElementById('userProfilesContainer');
             
             let html = '<div class="card"><h3>🧠 Your AI Learning Profile</h3>';
             
             // Behavior Analysis
             if (profile.behavior_profile) {
+                const responseLength = profile.behavior_profile.response_length_preference
+                    || profile.behavior_profile.preferred_response_length
+                    || 'unknown';
+                const behaviorTopics = asList(profile.behavior_profile.preferred_topics
+                    || profile.behavior_profile.common_topics
+                    || []);
+
                 html += '<h4>Communication Style</h4>';
-                html += `<p><strong>Style:</strong> ${profile.behavior_profile.communication_style}</p>`;
-                html += `<p><strong>Response Length:</strong> ${profile.behavior_profile.preferred_response_length}</p>`;
-                html += `<p><strong>Topics:</strong> ${profile.behavior_profile.common_topics.join(', ')}</p>`;
+                html += `<p><strong>Style:</strong> ${profile.behavior_profile.communication_style || 'unknown'}</p>`;
+                html += `<p><strong>Response Length:</strong> ${responseLength}</p>`;
+                html += `<p><strong>Topics:</strong> ${behaviorTopics.length ? behaviorTopics.join(', ') : 'None yet'}</p>`;
             }
             
             // Knowledge Graph
@@ -903,12 +1289,79 @@
             
             // Preferences
             if (profile.preferences) {
+                const preferenceTopics = asList(profile.preferences.favorite_topics
+                    || profile.preferences.preferred_topics
+                    || []);
+
                 html += '<h4>Learned Preferences</h4>';
-                html += `<p><strong>Topics:</strong> ${profile.preferences.preferred_topics.join(', ') || 'None yet'}</p>`;
+                html += `<p><strong>Topics:</strong> ${preferenceTopics.length ? preferenceTopics.join(', ') : 'None yet'}</p>`;
             }
             
             html += '</div>';
             container.innerHTML = html;
+            }
+        }
+
+        function renderMetric(label, percent, value) {
+            const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
+            return `
+                <div class="metric-row">
+                    <span>${escapeHtml(label)}</span>
+                    <span class="meter"><span class="meter-fill" style="width: ${safePercent}%"></span></span>
+                    <strong>${escapeHtml(String(value ?? ''))}</strong>
+                </div>
+            `;
+        }
+
+        function renderTags(items, className = '') {
+            const values = asList(items).filter(Boolean);
+            if (!values.length) return '<p class="conversation-meta">None learned yet</p>';
+            return `<div style="margin-top: 8px;">${values.map(item => `<span class="tag ${className}">${escapeHtml(String(item))}</span>`).join('')}</div>`;
+        }
+
+        function renderKnowledgeNetwork(entities) {
+            const nodes = asList(entities).slice(0, 9);
+            if (!nodes.length) {
+                return '<div class="empty-state" style="padding: 20px;"><p>No knowledge graph entities yet</p></div>';
+            }
+
+            const allNodes = [{ name: 'You', type: 'profile' }, ...nodes];
+            const positions = [
+                [50, 50], [50, 18], [75, 28], [82, 58], [66, 78],
+                [34, 78], [18, 58], [25, 28], [50, 86], [88, 42]
+            ];
+
+            return `
+                <div class="knowledge-network">
+                    ${allNodes.map((entity, index) => {
+                        const [left, top] = positions[index] || [50, 50];
+                        const label = entity.name || entity.entity_id || 'entity';
+                        const type = entity.type ? ` (${entity.type})` : '';
+                        return `<div class="knowledge-node ${index === 0 ? 'central' : ''}" style="left:${left}%; top:${top}%;" title="${escapeHtml(label + type)}">${escapeHtml(label)}</div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderRelationshipList(relationships, entities) {
+            const rels = asList(relationships).slice(0, 5);
+            if (!rels.length) return '';
+
+            const byId = {};
+            asList(entities).forEach(entity => {
+                if (entity.entity_id) byId[entity.entity_id] = entity.name || entity.entity_id;
+            });
+
+            return `
+                <div class="relationship-list">
+                    ${rels.map(rel => {
+                        const source = byId[rel.source_id] || rel.source_id || 'source';
+                        const target = byId[rel.target_id] || rel.target_id || 'target';
+                        const type = rel.relation_type || 'related_to';
+                        return `<div class="relationship-item">${escapeHtml(source)} -> ${escapeHtml(type)} -> ${escapeHtml(target)}</div>`;
+                    }).join('')}
+                </div>
+            `;
         }
 
         async function generateUserProfile() {
@@ -1140,6 +1593,12 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function asList(value) {
+            if (Array.isArray(value)) return value;
+            if (value === undefined || value === null || value === '') return [];
+            return [String(value)];
         }
 
         function showError(message) {

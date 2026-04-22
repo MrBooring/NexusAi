@@ -3,21 +3,328 @@
     {
       "conversation_id": "cf1953b4-b930-49ef-9e9e-5a967182f3a7",
       "title": "Test Conversation",
-      "messages": [],
+      "messages": [
+        {
+          "role": "user",
+          "content": "hie tell me a joke",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "assistant",
+          "content": "Here's one:\n\nWhat do you call a fake noodle?\n\n(wait for it...)\n\nAn impasta!\n\nHope that made you laugh! Do you want to hear another one?",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "user",
+          "content": "what is flutter in short",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "assistant",
+          "content": "A simple question with a straightforward answer!\n\nFlutter is an open-source mobile app development framework created by Google. It allows developers to build natively compiled applications for mobile, web, and desktop from a single codebase.\n\nIn short... Flutter!",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "user",
+          "content": "do you know llm",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "assistant",
+          "content": "LLM stands for Large Language Model!\n\nMore specifically, LLM refers to the type of AI technology I'm built on, which is designed to understand and generate human-like language. These models are trained on vast amounts of text data to learn patterns and relationships in language.\n\nIn my case, I'm a fine-tuned version of a large transformer model, which allows me to have conversations with you and assist with various tasks!",
+          "timestamp": "2026-04-18T12:11:30.267072"
+        },
+        {
+          "role": "user",
+          "content": "Hi, my name is Dante.",
+          "timestamp": "2026-04-20T04:30:01.190068"
+        },
+        {
+          "role": "assistant",
+          "content": "I see we've had some fun conversations recently! You were interested in learning about Flutter in short, and now I'll keep it concise again.\n\nTo answer your new question: Do I know LLM? Yes, I do! As a large language model myself, I'm familiar with the concept. By the way, what's on your mind regarding LLM or anything else?",
+          "timestamp": "2026-04-20T04:30:40.869230"
+        }
+      ],
       "created_at": "2026-04-17T21:04:28.682578",
-      "updated_at": "2026-04-17T21:04:28.682578",
-      "metadata": {},
+      "updated_at": "2026-04-20T04:30:40.869230",
+      "metadata": {
+        "recovered_from": "chroma"
+      },
+      "summary": "do you know llm LLM stands for Large Language Model!\n\nMore specifically, LLM refers to the type of AI technology I'm built on, which is designed to understand and generate human-like language. These models are trained on vast amounts of text data to learn patterns and relationships in language....",
+      "topics": [
+        "user",
+        "flutter",
+        "language",
+        "short",
+        "large"
+      ],
+      "importance_score": 0.4,
+      "message_count": 8,
+      "last_activity": "2026-04-20T04:30:40.869230"
+    },
+    {
+      "conversation_id": "4323ebab-1928-4973-81ae-c8b83023d8f7",
+      "title": "LLM Chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "cooking recipies",
+          "timestamp": "2026-04-18T12:36:27.376187"
+        },
+        {
+          "role": "user",
+          "content": "hi what are you",
+          "timestamp": "2026-04-20T04:38:27.587917"
+        },
+        {
+          "role": "assistant",
+          "content": "I'm your recipe guide! How can I help with a dish today?",
+          "timestamp": "2026-04-20T04:38:34.057145"
+        }
+      ],
+      "created_at": "2026-04-18T12:36:20.189277",
+      "updated_at": "2026-04-20T04:38:34.057145",
+      "metadata": {
+        "recovered_from": "chroma"
+      },
+      "summary": "cooking recipies hi what are you",
+      "topics": [
+        "user",
+        "cooking",
+        "recipies"
+      ],
+      "importance_score": 0.15,
+      "message_count": 3,
+      "last_activity": "2026-04-20T04:38:34.057145"
+    },
+    {
+      "conversation_id": "91085bba-3907-44b3-81e0-9e7f444823f6",
+      "title": "Friday Session",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hello",
+          "timestamp": "2026-04-20T04:48:02.600213"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How's your day going so far? Need help with anything or just chatting about Flutter perhaps?",
+          "timestamp": "2026-04-20T04:48:16.289446"
+        }
+      ],
+      "created_at": "2026-04-20T04:47:29.671778",
+      "updated_at": "2026-04-20T04:48:16.289446",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": "hello Hello! How's your day going so far? Need help with anything or just chatting about Flutter perhaps?",
+      "topics": [
+        "user",
+        "going",
+        "need",
+        "help",
+        "anything"
+      ],
+      "importance_score": 0.1,
+      "message_count": 2,
+      "last_activity": "2026-04-20T04:48:16.289446"
+    },
+    {
+      "conversation_id": "ac949636-17d8-4f87-8238-6438734bb5eb",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:52:16.385136",
+      "updated_at": "2026-04-20T04:52:16.385136",
+      "metadata": {
+        "source": "friday_ui"
+      },
       "summary": null,
       "topics": [],
       "importance_score": 1.0,
       "message_count": 0,
-      "last_activity": "2026-04-17T21:04:28.682578"
+      "last_activity": "2026-04-20T04:52:16.385136"
     },
     {
-      "conversation_id": "08d0d212-e2fa-41dd-933d-63472e5a9c2e",
-      "title": "Test Conversation",
+      "conversation_id": "61bfdeea-0bf3-497b-bd7d-cbdbd30e3921",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:54:05.778691",
+      "updated_at": "2026-04-20T04:54:05.778691",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T04:54:05.778691"
+    },
+    {
+      "conversation_id": "ea7f652e-cc37-4706-8694-5e5cc108260e",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:55:18.519014",
+      "updated_at": "2026-04-20T04:55:18.519014",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T04:55:18.519014"
+    },
+    {
+      "conversation_id": "3025b42b-4eb6-4644-9e4d-8adba441e2f8",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:55:20.415157",
+      "updated_at": "2026-04-20T04:55:20.415157",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T04:55:20.415157"
+    },
+    {
+      "conversation_id": "b3bf02e9-8979-434e-975e-fa9611c9e9c0",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:56:17.872258",
+      "updated_at": "2026-04-20T04:56:17.872258",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T04:56:17.872258"
+    },
+    {
+      "conversation_id": "0c7f1a80-a29f-4e99-afbd-c84a75783b5e",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T04:58:53.356092",
+      "updated_at": "2026-04-20T04:58:53.356092",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T04:58:53.356092"
+    },
+    {
+      "conversation_id": "73a83e32-2c1b-413b-85c2-6f68f6edcb83",
+      "title": "Friday Session",
       "messages": [
         {
           "role": "user",
-          "content": "Hello, I am interested in machine learning and AI development",
-          "timestamp": 
+          "content": "hello hello what is your time",
+          "timestamp": "2026-04-20T05:02:02.596915"
+        },
+        {
+          "role": "assistant",
+          "content": "Just getting started with you. I'm a 24/7 assistant, so I don't have \"time\" like humans do, but I'm here whenever you need me. What's on your mind? Want to chat about Flutter or something else?",
+          "timestamp": "2026-04-20T05:02:34.193965"
+        }
+      ],
+      "created_at": "2026-04-20T05:01:51.317829",
+      "updated_at": "2026-04-20T05:02:34.193965",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": "hello hello what is your time Just getting started with you. I'm a 24/7 assistant, so I don't have \"time\" like humans do, but I'm here whenever you need me. What's on your mind? Want to chat about Flutter or something else?",
+      "topics": [
+        "time",
+        "user",
+        "just",
+        "getting",
+        "started"
+      ],
+      "importance_score": 0.1,
+      "message_count": 2,
+      "last_activity": "2026-04-20T05:02:34.193965"
+    },
+    {
+      "conversation_id": "e011d6c6-392d-4838-a4f5-83c410214d03",
+      "title": "Friday Session",
+      "messages": [
+        {
+          "role": "user",
+          "content": "hey",
+          "timestamp": "2026-04-20T05:04:42.288935"
+        },
+        {
+          "role": "assistant",
+          "content": "Just checking in! How was your day so far?",
+          "timestamp": "2026-04-20T05:04:47.427968"
+        }
+      ],
+      "created_at": "2026-04-20T05:04:33.505008",
+      "updated_at": "2026-04-20T05:04:47.427968",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": "hey Just checking in! How was your day so far?",
+      "topics": [
+        "user",
+        "just",
+        "checking"
+      ],
+      "importance_score": 0.1,
+      "message_count": 2,
+      "last_activity": "2026-04-20T05:04:47.427968"
+    },
+    {
+      "conversation_id": "6af8527e-d1e4-45ae-8f55-bcbf45a1d620",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T05:06:56.696789",
+      "updated_at": "2026-04-20T05:06:56.696789",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T05:06:56.696789"
+    },
+    {
+      "conversation_id": "3351ed88-393e-4b6d-9fb1-f22ee7348861",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T05:07:11.722356",
+      "updated_at": "2026-04-20T05:07:11.722356",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T05:07:11.722356"
+    },
+    {
+      "conversation_id": "7d47404a-d68c-47a0-adc9-728cf2a568b5",
+      "title": "Friday Session",
+      "messages": [],
+      "created_at": "2026-04-20T05:08:07.407756",
+      "updated_at": "2026-04-20T05:08:07.407756",
+      "metadata": {
+        "source": "friday_ui"
+      },
+      "summary": null,
+      "topics": [],
+      "importance_score": 1.0,
+      "message_count": 0,
+      "last_activity": "2026-04-20T05:08:07.407756"
+    }
+  ]
+}

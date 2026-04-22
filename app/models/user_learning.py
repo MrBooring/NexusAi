@@ -77,7 +77,7 @@ class UserBehaviorProfile(BaseModel):
     communication_style: str  # formal, casual, technical, etc.
     preferred_topics: List[str] = Field(default_factory=list)
     response_length_preference: str  # short, medium, long
-    interaction_frequency: int  # per day
+    interaction_frequency: int = 0  # per day
     preferred_time: Optional[str] = None  # morning, afternoon, evening
     emotion_tendency: Optional[str] = None  # positive, neutral, analytical
     patterns: List[BehaviorPattern] = Field(default_factory=list)

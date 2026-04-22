@@ -6,6 +6,7 @@ import json
 import uuid
 import asyncio
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 from app.config.settings import settings
 from app.models.conversation import Conversation, Message
@@ -27,6 +28,7 @@ class MemoryService:
         
         # In-memory storage for conversation data
         self.conversations: Dict[str, Conversation] = {}
+        self._background_tasks = set()
         
         # Persistent storage
         self.data_dir = "./data"
@@ -34,28 +36,6 @@ class MemoryService:
         
         # Load existing conversations on startup
         self._load_conversations_from_disk()
-
-    def _ensure_initialized(self):
-        """Ensure ChromaDB is initialized"""
-        if self._client is None:
-            try:
-                # Initialize ChromaDB client
-                self._client = chromadb.Client(
-                    ChromaSettings(
-                        chroma_db_impl="duckdb",
-                        persist_directory="./data/chroma",
-                        anonymized_telemetry=False
-                    )
-                )
-                
-                # Get or create collection for conversations
-                self._collection = self._client.get_or_create_collection(
-                    name=settings.collection_name,
-                    metadata={"hnsw:space": "cosine"}
-                )
-            except Exception as e:
-                print(f"Warning: ChromaDB initialization failed: {e}")
-                self._collection = None
 
     def _load_conversations_from_disk(self):
         """Load conversations from persistent storage"""
@@ -93,7 +73,7 @@ class MemoryService:
                     {
                         'conversation_id': conv.conversation_id,
                         'title': conv.title,
-                        'messages': [msg.dict() for msg in conv.messages],
+                        'messages': [msg.model_dump(mode="json") for msg in conv.messages],
                         'created_at': conv.created_at.isoformat(),
                         'updated_at': conv.updated_at.isoformat(),
                         'metadata': conv.metadata,
@@ -106,8 +86,13 @@ class MemoryService:
                     for conv in self.conversations.values()
                 ]
             }
-            with open(self.conversations_file, 'w', encoding='utf-8') as f:
+            temp_file = f"{self.conversations_file}.tmp"
+            backup_file = f"{self.conversations_file}.bak"
+            with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
+            if os.path.exists(self.conversations_file):
+                shutil.copy2(self.conversations_file, backup_file)
+            os.replace(temp_file, self.conversations_file)
         except Exception as e:
             print(f"Warning: Failed to save conversations to disk: {e}")
 
@@ -115,16 +100,11 @@ class MemoryService:
         """Ensure ChromaDB is initialized"""
         if self._client is None:
             try:
-                # Initialize ChromaDB client
-                self._client = chromadb.Client(
-                    ChromaSettings(
-                        chroma_db_impl="duckdb",
-                        persist_directory="./data/chroma",
-                        anonymized_telemetry=False
-                    )
+                self._client = chromadb.PersistentClient(
+                    path="./data/chroma",
+                    settings=ChromaSettings(anonymized_telemetry=False)
                 )
                 
-                # Get or create collection for conversations
                 self._collection = self._client.get_or_create_collection(
                     name=settings.collection_name,
                     metadata={"hnsw:space": "cosine"}
@@ -138,6 +118,68 @@ class MemoryService:
         """Lazy initialization of collection"""
         self._ensure_initialized()
         return self._collection
+
+    def _schedule_background_task(self, coro):
+        """Run maintenance work without delaying chat responses."""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
+
+    def _conversation_search_text(self, conversation: Conversation) -> str:
+        """Build the text blob used for both vector and fallback search."""
+        parts = [
+            conversation.title or "",
+            conversation.summary or "",
+            " ".join(conversation.topics),
+        ]
+        parts.extend(f"{msg.role}: {msg.content}" for msg in conversation.messages)
+        return "\n".join(part for part in parts if part).strip()
+
+    def _rank_conversations_in_memory(self, query: str, limit: int) -> List[Conversation]:
+        """Simple lexical fallback for environments without ChromaDB."""
+        terms = [term for term in query.lower().split() if term]
+        if not terms:
+            return self.get_recent_conversations_sync(limit)
+
+        ranked = []
+        for conversation in self.conversations.values():
+            text = self._conversation_search_text(conversation).lower()
+            score = sum(text.count(term) for term in terms)
+            if score:
+                ranked.append((score, conversation.last_activity, conversation))
+
+        ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [conversation for _, _, conversation in ranked[:limit]]
+
+    def get_recent_conversations_sync(self, limit: int = 5) -> List[Conversation]:
+        conversations = list(self.conversations.values())
+        conversations.sort(key=lambda x: x.last_activity, reverse=True)
+        return conversations[:limit]
+
+    async def _upsert_conversation_index(self, conversation: Conversation):
+        """Keep the vector index aligned with the persisted conversation."""
+        if self.collection is None:
+            return
+
+        try:
+            document = self._conversation_search_text(conversation) or (conversation.title or conversation.conversation_id)
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                executor,
+                lambda: self.collection.upsert(
+                    ids=[conversation.conversation_id],
+                    metadatas=[{
+                        "title": conversation.title,
+                        "created_at": conversation.created_at.isoformat(),
+                        "updated_at": conversation.updated_at.isoformat(),
+                        "conversation_id": conversation.conversation_id
+                    }],
+                    documents=[document]
+                )
+            )
+        except Exception as e:
+            print(f"Warning: Failed to update ChromaDB conversation index: {e}")
 
     async def create_conversation(self, title: Optional[str] = None, metadata: Optional[dict] = None) -> str:
         """Create a new conversation"""
@@ -155,28 +197,11 @@ class MemoryService:
         # Save to disk
         self._save_conversations_to_disk()
         
-        # Store in ChromaDB for vector search if available
-        if self.collection is not None:
-            try:
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(
-                    executor,
-                    lambda: self.collection.add(
-                        ids=[conversation_id],
-                        metadatas=[{
-                            "title": conversation.title,
-                            "created_at": conversation.created_at.isoformat(),
-                            "conversation_id": conversation_id
-                        }],
-                        documents=[conversation.title]
-                    )
-                )
-            except Exception as e:
-                print(f"Warning: Failed to add conversation to ChromaDB: {e}")
+        self._schedule_background_task(self._upsert_conversation_index(conversation))
         
         return conversation_id
 
-    async def add_message(self, conversation_id: str, role: str, content: str) -> Conversation:
+    async def add_message(self, conversation_id: str, role: str, content: str, run_maintenance: bool = True) -> Conversation:
         """Add a message to a conversation"""
         if conversation_id not in self.conversations:
             raise ValueError(f"Conversation {conversation_id} not found")
@@ -188,20 +213,21 @@ class MemoryService:
         conversation.last_activity = datetime.now()
         conversation.message_count = len(conversation.messages)
         
-        # Auto-generate summary and topics for longer conversations
-        # For testing: generate after 2 messages, then every 2 messages
-        if conversation.message_count >= 2 and conversation.message_count % 2 == 0:
-            await self._update_conversation_metadata(conversation)
-        
         # Update importance score based on conversation length and recency
         conversation.importance_score = min(1.0, conversation.message_count / 20.0)
-        
-        # Auto-update user profile for single-user system
-        if conversation.message_count >= 2 and conversation.message_count % 3 == 0:
-            await self._update_user_profile()
-        
+
         # Save to disk after every message
         self._save_conversations_to_disk()
+
+        if run_maintenance:
+            self._schedule_background_task(self._upsert_conversation_index(conversation))
+
+            # Keep lightweight metadata/profile maintenance off the chat response path.
+            if conversation.message_count >= 2 and conversation.message_count % 2 == 0:
+                self._schedule_background_task(self._update_conversation_metadata(conversation, use_llm=False))
+
+            if conversation.message_count >= 2 and conversation.message_count % 3 == 0:
+                self._schedule_background_task(self._update_user_profile())
         
         return conversation
 
@@ -216,8 +242,7 @@ class MemoryService:
     async def search_conversations(self, query: str, limit: int = 5) -> List[Conversation]:
         """Search conversations using semantic similarity"""
         if self.collection is None:
-            # Fallback to in-memory search
-            return list(self.conversations.values())[:limit]
+            return self._rank_conversations_in_memory(query, limit)
         
         try:
             # Query ChromaDB for similar documents
@@ -238,9 +263,42 @@ class MemoryService:
             return [self.conversations[cid] for cid in conversation_ids if cid in self.conversations]
         except Exception as e:
             print(f"Search error: {e}")
-            return list(self.conversations.values())[:limit]
+            return self._rank_conversations_in_memory(query, limit)
 
-    async def _update_conversation_metadata(self, conversation: Conversation):
+    async def get_conversation_summary(self, conversation_id: str) -> Optional[str]:
+        """Get an existing summary or create a lightweight fallback summary."""
+        conversation = self.conversations.get(conversation_id)
+        if not conversation:
+            return None
+
+        if conversation.summary:
+            return conversation.summary
+
+        if not conversation.messages:
+            return conversation.title or "Empty conversation."
+
+        snippets = [msg.content.strip() for msg in conversation.messages[:3] if msg.content.strip()]
+        summary = " ".join(snippets)
+        if len(summary) > 300:
+            summary = summary[:297].rstrip() + "..."
+        return summary
+
+    def _extract_basic_topics(self, text: str, limit: int = 5) -> List[str]:
+        import re
+        from collections import Counter
+
+        stop_words = {
+            "about", "after", "also", "assistant", "because", "could", "from",
+            "have", "hello", "into", "more", "should", "that", "their",
+            "there", "this", "what", "when", "where", "which", "with", "would",
+            "your"
+        }
+        words = re.findall(r"\b[a-z][a-z0-9+#.-]{3,}\b", text.lower())
+        return [
+            word for word, _ in Counter(word for word in words if word not in stop_words).most_common(limit)
+        ]
+
+    async def _update_conversation_metadata(self, conversation: Conversation, use_llm: bool = False):
         """Update summary and topics for a conversation"""
         try:
             print(f"Generating metadata for conversation {conversation.conversation_id[:8]}... ({conversation.message_count} messages)")
@@ -251,6 +309,15 @@ class MemoryService:
                 for msg in conversation.messages
             ])
             
+            if not use_llm:
+                snippets = [msg.content.strip() for msg in conversation.messages[-4:] if msg.content.strip()]
+                summary = " ".join(snippets)
+                conversation.summary = summary[:297].rstrip() + "..." if len(summary) > 300 else summary
+                conversation.topics = self._extract_basic_topics(conversation_text)
+                self._save_conversations_to_disk()
+                await self._upsert_conversation_index(conversation)
+                return
+
             summary_prompt = f"""Please provide a concise 2-3 sentence summary of this conversation:
 
 {conversation_text}
@@ -280,6 +347,8 @@ Topics:"""
             topics = [topic.strip() for topic in topics_response.split(',') if topic.strip()]
             conversation.topics = topics[:5]  # Limit to 5 topics
             print(f"Generated topics: {conversation.topics}")
+            self._save_conversations_to_disk()
+            await self._upsert_conversation_index(conversation)
             
         except Exception as e:
             print(f"Warning: Failed to update conversation metadata: {e}")
@@ -304,16 +373,30 @@ Topics:"""
             profile = await user_learning_service.learn_from_conversation(
                 user_id=DEFAULT_USER_ID,
                 messages=all_messages,
-                conversation_count=len(conversations)
+                conversation_count=len(conversations),
+                use_llm=False
             )
             
-            print(f"User profile updated: {len(profile.entities)} entities, {len(profile.relationships)} relationships")
+            print(
+                "User profile updated: "
+                f"{len(profile.knowledge_graph.entities)} entities, "
+                f"{len(profile.knowledge_graph.relationships)} relationships"
+            )
             
         except Exception as e:
             print(f"Warning: Failed to update user profile: {e}")
 
     async def get_user_profile(self, user_id: str = DEFAULT_USER_ID):
         """Get user profile for single-user system"""
+        return await user_learning_service.get_user_profile(user_id)
+
+    async def ensure_user_profile(self, user_id: str = DEFAULT_USER_ID):
+        """Ensure a lightweight profile exists for personalization."""
+        profile = await user_learning_service.get_user_profile(user_id)
+        if profile:
+            return profile
+
+        await self._update_user_profile()
         return await user_learning_service.get_user_profile(user_id)
 
     async def get_memory_stats(self) -> dict:
@@ -327,6 +410,7 @@ Topics:"""
                 "average_conversation_length": 0.0,
                 "oldest_conversation": None,
                 "newest_conversation": None,
+                "unique_topics": 0,
                 "top_topics": [],
                 "storage_size_mb": 0.0
             }
@@ -359,6 +443,7 @@ Topics:"""
             "average_conversation_length": round(avg_length, 2),
             "oldest_conversation": oldest,
             "newest_conversation": newest,
+            "unique_topics": len(topic_counts),
             "top_topics": top_topics,
             "storage_size_mb": round(storage_mb, 2)
         }
@@ -398,9 +483,7 @@ Topics:"""
 
     async def get_recent_conversations(self, limit: int = 5) -> List[Conversation]:
         """Get most recently active conversations"""
-        conversations = list(self.conversations.values())
-        conversations.sort(key=lambda x: x.last_activity, reverse=True)
-        return conversations[:limit]
+        return self.get_recent_conversations_sync(limit)
 
     async def get_important_conversations(self, limit: int = 5) -> List[Conversation]:
         """Get most important conversations by score"""
@@ -412,6 +495,7 @@ Topics:"""
         """Clear a conversation"""
         if conversation_id in self.conversations:
             del self.conversations[conversation_id]
+            self._save_conversations_to_disk()
             return True
         return False
 
@@ -427,6 +511,9 @@ Topics:"""
         
         for cid in to_delete:
             del self.conversations[cid]
+        
+        if to_delete:
+            self._save_conversations_to_disk()
         
         return len(to_delete)
 

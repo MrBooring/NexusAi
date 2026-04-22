@@ -2,7 +2,7 @@ import asyncio
 from app.services.memory import memory_service
 
 async def test_persistence():
-    print("=== Testing NexusAI Persistence & Learning ===\n")
+    print("=== Testing Friday Persistence & Learning ===\n")
 
     # Create a conversation
     print("1. Creating conversation...")
@@ -43,4 +43,3 @@ async def test_persistence():
 
 if __name__ == "__main__":
     asyncio.run(test_persistence())
-<parameter name="filePath">d:\aiassistant\test_persistence.py

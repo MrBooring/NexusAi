@@ -8,3 +8,6 @@ websockets
 pydantic
 pydantic-settings
 python-multipart
+httpx
+pytest
+pytest-asyncio

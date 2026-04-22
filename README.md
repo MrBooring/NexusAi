@@ -1,21 +1,25 @@
-# NexusAI - Local AI Assistant
+# Friday - Local AI Assistant
 
-Version 0.1.0 - First Usable Milestone
+Version 0.6.0 - Local Assistant MVP Foundation
 
 ## Overview
 
-NexusAI is a fully local, privacy-first personal AI assistant that runs entirely on your hardware with no cloud dependencies.
+Friday is a fully local, privacy-first personal AI assistant that runs on your own hardware with no cloud dependency.
 
-## Features (0.1)
+## Current Capabilities
 
-- ✅ FastAPI backend setup
-- ✅ Basic API endpoints (`/` and `/health`)
-- ✅ Auto-generated API documentation at `/docs`
-- ✅ Project structure ready for expansion
+- FastAPI backend with docs at `/docs`
+- Local LLM chat via Ollama
+- Persistent conversation memory
+- Semantic and fallback search across conversations
+- User profile learning and personalized responses
+- Dashboard for conversations, search, profiles, voice interaction, and device visibility
+- Voice API surface for transcription, response generation, and speech output
+- Lightweight multi-device hub with REST status and WebSocket connections
 
 ## Quick Start
 
-1. Activate virtual environment:
+1. Activate the virtual environment:
 
    ```bash
    .\.venv\Scripts\Activate.ps1
@@ -33,24 +37,33 @@ NexusAI is a fully local, privacy-first personal AI assistant that runs entirely
    fastapi dev main.py
    ```
 
-4. Test the API:
-   - Open http://localhost:8000/ in your browser
-   - Check health at http://localhost:8000/health
-   - View API docs at http://localhost:8000/docs
+4. Open:
+   - API root: http://localhost:8000/
+   - Health: http://localhost:8000/health
+   - Docs: http://localhost:8000/docs
+   - Dashboard: http://localhost:8000/dashboard
 
-## Next Steps
+## Main Routes
 
-This 0.1 release provides a solid foundation for:
+- `/llm/*` - local model chat and model status
+- `/memory/*` - conversation storage, retrieval, search, and analytics
+- `/users/*` - learned profile, behavior, graph, and personalization
+- `/voice/*` - voice status, transcription, speech synthesis, and voice chat
+- `/devices/*` - device status and multi-device WebSocket hub
 
-- Voice processing integration (Whisper, Coqui TTS)
-- Local LLM integration (Ollama)
-- Memory system (ChromaDB)
-- Multi-device support
-- Plugin architecture
+## What Still Needs Work
+
+- Live streaming voice instead of request/response audio uploads
+- Real device clients beyond the dashboard and raw WebSocket endpoint
+- Command/plugin execution for automation and home tasks
+- Stronger automated test coverage for API workflows
+- Long-run stability checks and performance tuning on real hardware
 
 ## Architecture
 
-- `main.py`: FastAPI application entry point
-- `requirements.txt`: Python dependencies
-- `docs/`: Project documentation
-- `.github/agents/`: Custom development agents
+- `app/main.py` - FastAPI application setup
+- `app/routers/` - REST and WebSocket routes
+- `app/services/` - LLM, memory, voice, learning, and device hub services
+- `app/models/` - Pydantic data models
+- `docs/` - project documentation
+- `dashboard.html` - local web dashboard

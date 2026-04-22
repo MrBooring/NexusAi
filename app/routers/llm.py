@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.llm import llm_service
 from app.services.memory import memory_service
+from app.config.settings import settings
+from app.services.user_learning import user_learning_service
 
 router = APIRouter(prefix="/llm", tags=["llm"])
 
@@ -50,9 +52,15 @@ async def chat_with_llm(request: ChatRequest):
             content=request.prompt
         )
 
+        await memory_service.ensure_user_profile("local_user")
+        personalized_context = await user_learning_service.get_response_guidance("local_user")
+        context = request.context[-settings.max_chat_context_chars:]
+        if personalized_context:
+            context = f"{personalized_context}\n\n{context}"
+
         response = await llm_service.generate_response(
             prompt=request.prompt,
-            context=request.context
+            context=context
         )
 
         await memory_service.add_message(

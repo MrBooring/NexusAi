@@ -9,7 +9,7 @@ BASE_URL = "http://localhost:8000"
 
 async def test_api():
     async with httpx.AsyncClient(timeout=120.0) as client:
-        print("Testing NexusAI LLM API Endpoints\n")
+        print("Testing Friday LLM API Endpoints\n")
 
         # Test 1: Health endpoint
         print("1. Testing /health endpoint...")
@@ -31,7 +31,7 @@ async def test_api():
         print("   (This may take a moment for the LLM to generate a response...)")
         response = await client.post(
             f"{BASE_URL}/llm/chat",
-            json={"prompt": "What is NexusAI?", "context": ""}
+            json={"prompt": "What is Friday?", "context": ""}
         )
         result = response.json()
         print(f"   Response: {result}\n")
